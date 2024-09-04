@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Bluetooth Control</title>
+</head>
+<body>
+    <h1>ESP32 Bluetooth Control</h1>
+    <button onclick="connectBluetooth()">Connect to ESP32</button>
+    <button onclick="sendData('ON')">Turn LED ON</button>
+    <button onclick="sendData('OFF')">Turn LED OFF</button>
+
+    <script>
+        let characteristic;
+
+        async function connectBluetooth() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [0xFFE0] }]  // UUID сервиса ESP32
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(0xFFE0);  // UUID сервиса ESP32
+                characteristic = await service.getCharacteristic(0xFFE1);  // UUID характеристики
+
+                console.log('Connected to ESP32');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function sendData(data) {
+            if (characteristic) {
+                const encoder = new TextEncoder();
+                const value = encoder.encode(data);
+                await characteristic.writeValue(value);
+                console.log(`Sent: ${data}`);
+            } else {
+                console.log('No connection to ESP32');
+            }
+        }
+    </script>
+</body>
+</html>
