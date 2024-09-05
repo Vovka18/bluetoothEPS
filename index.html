@@ -6,25 +6,60 @@
 <body>
     <h1>ESP32 Bluetooth Control</h1>
     <button onclick="connectBluetooth()">Connect to ESP32</button>
-    <button onclick="sendData('ON')">Turn LED ON</button>
-    <button onclick="sendData('OFF')">Turn LED OFF</button>
+    <button onclick="onn()">Turn LED ON</button>
+    <button onclick="off()">Turn LED OFF</button>
 
     <script>
         let characteristic;
 
         async function connectBluetooth() {
             try {
+                console.log('Requesting Bluetooth device...');
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: [0xFFE0] }]  // UUID сервиса ESP32
+                    filters: [{ services: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] }]  // UUID сервиса ESP32
                 });
 
+                console.log('Connecting to GATT server...');
                 const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(0xFFE0);  // UUID сервиса ESP32
-                characteristic = await service.getCharacteristic(0xFFE1);  // UUID характеристики
-
+                
+                console.log('Getting service...');
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');  // UUID сервиса ESP32
+                
+                console.log('Getting characteristic...');
+                characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');  // UUID характеристики
+                
                 console.log('Connected to ESP32');
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        async function onn() {
+            if (characteristic) {
+                const encoder = new TextEncoder();
+                const value = encoder.encode("ON");
+                try {
+                    await characteristic.writeValue(value);
+                    console.log(`Sent: 1`);
+                } catch (error) {
+                    console.error('Write Error:', error);
+                }
+            } else {
+                console.log('No connection to ESP32');
+            }
+        }
+        async function off() {
+            if (characteristic) {
+                const encoder = new TextEncoder();
+                const value = encoder.encode("OFF");
+                try {
+                    await characteristic.writeValue(value);
+                    console.log(`Sent: 0`);
+                } catch (error) {
+                    console.error('Write Error:', error);
+                }
+            } else {
+                console.log('No connection to ESP32');
             }
         }
 
@@ -32,8 +67,12 @@
             if (characteristic) {
                 const encoder = new TextEncoder();
                 const value = encoder.encode(data);
-                await characteristic.writeValue(value);
-                console.log(`Sent: ${data}`);
+                try {
+                    await characteristic.writeValue(value);
+                    console.log(`Sent: ${data}`);
+                } catch (error) {
+                    console.error('Write Error:', error);
+                }
             } else {
                 console.log('No connection to ESP32');
             }
